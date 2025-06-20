@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MapReduce Data Flow Diagram - Flight Price Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .job-container {
+            margin-bottom: 40px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .job-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .stage {
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+        }
+        .stage-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding: 12px;
+            border-radius: 5px;
+            color: white;
+            font-size: 16px;
+        }
+        .input-stage .stage-title { background: #27ae60; }
+        .map-stage .stage-title { background: #f39c12; }
+        .shuffle-stage .stage-title { background: #3498db; }
+        .reduce-stage .stage-title { background: #e74c3c; }
+        .output-stage .stage-title { background: #9b59b6; }
+
+        .data-box {
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 5px 0;
+            font-size: 12px;
+            line-height: 1.4;
+            text-align: left;
+            /* 移除固定高度和滚动条限制 */
+            min-height: auto;
+            height: auto;
+            overflow: visible;
+            max-height: none;
+        }
+
+        /* 为Input Stage的data-box特别设置 */
+        .input-stage .data-box {
+            min-height: auto;
+            height: auto;
+            max-height: none;
+            overflow: visible;
+        }
+
+        .record {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 3px;
+        }
+        .key-value {
+            background: #e8f4fd;
+            border: 1px solid #b8daff;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .key {
+            color: #0056b3;
+            font-weight: bold;
+        }
+        .key_count {
+            color: red;
+            font-weight: bold;
+        }
+        .value {
+            color: #28a745;
+        }
+        .arrow {
+            font-size: 36px;
+            color: #666;
+            margin: 10px 0;
+            transform: rotate(90deg);
+        }
+        .grouped-data {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .final-output {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .legend {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+        .legend-item {
+            display: inline-block;
+            margin: 5px 10px;
+            font-size: 12px;
+        }
+        .legend-color {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            border-radius: 3px;
+            vertical-align: middle;
+        }
+        .placeholder {
+            color: #6c757d;
+            font-style: italic;
+        }
+        .logic-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+        .scrollable-text-box {
+            background: #ffffff;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            height: 300px;
+            width: calc(100% - 20px);
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow: auto;
+            font-size: 10px;
+            line-height: 1;
+            color: #333;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            white-space: nowrap;
+        }
+        .scrollable-text-box::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+        .scrollable-text-box::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 6px;
+        }
+        .scrollable-text-box::-webkit-scrollbar-thumb {
+            background: #007bff;
+            border-radius: 6px;
+            border: 2px solid #f1f1f1;
+        }
+        .scrollable-text-box::-webkit-scrollbar-thumb:hover {
+            background: #0056b3;
+        }
+        .scrollable-text-box::-webkit-scrollbar-corner {
+            background: #f1f1f1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MapReduce Data Flow Diagram - Route Analysis System</h1>
+        
+        <!-- Job 1: Route Demand and Price Analysis -->
+        <div class="job-container">
+            <div class="job-title">Job 1: Route Demand and Price Analysis (RouteMapper + DemandPriceReducer)</div>
+            <div class="flow-diagram">
+                <!-- Input Stage -->
+                <div class="stage input-stage">
+                    <div class="stage-title">Input Stage</div>
+                    <div class="data-box">
+                        <div class="record">
+                            <strong>Record 1:</strong><br>
+                            legId: 9ca0e81111c683bec1012473feefd28f<br>
+                            searchDate: 4/16/2022<br>
+                            flightDate: 4/17/2022<br>
+                            <span class="key">startingAirport: ATL</span><br>
+                            <span class="key">destinationAirport: BOS</span><br>
+                            fareBasisCode: LA0NX0MC<br>
+                            travelDuration: PT2H29M<br>
+                            elapsedDays: 0<br>
+                            isBasicEconomy: FALSE<br>
+                            isRefundable: FALSE<br>
+                            isNonStop: TRUE<br>
+                            baseFare: 217.67<br>
+                            <span class="value">totalFare: 248.6</span><br>
+                            <span class="value">seatsRemaining: 9</span><br>
+                            totalTravelDistance: 947<br>
+                            segmentsDepartureTimeEpochSeconds: 1650214620<br>
+                            segmentsDepartureTimeRaw: 2022-04-17T12:57:00.000-04:00<br>
+                            segmentsArrivalTimeEpochSeconds: 1650223560<br>
+                            segmentsArrivalTimeRaw: 2022-04-17T15:26:00.000-04:00<br>
+                            segmentsArrivalAirportCode: BOS<br>
+                            segmentsDepartureAirportCode: ATL<br>
+                            segmentsAirlineName: Delta<br>
+                            segmentsAirlineCode: DL<br>
+                            segmentsEquipmentDescription: Airbus A321<br>
+                            segmentsDurationInSeconds: 8940<br>
+                            segmentsDistance: 947<br>
+                            segmentsCabinCode: coach<br>
+
+                        </div>
+                        <div class="record">
+                            <strong>Record 2:</strong><br>
+                            legId: 6081f9cedd3a6c892100ccc6548133eb<br>
+                            searchDate: 4/16/2022<br>
+                            flightDate: 4/17/2022<br>
+                            <span class="key">startingAirport: ATL</span><br>
+                            <span class="key">destinationAirport: LAX</span><br>
+                            fareBasisCode: KNR<br>
+                            travelDuration: PT8H21M<br>
+                            elapsedDays: 1<br>
+                            isBasicEconomy: FALSE<br>
+                            isRefundable: FALSE<br>
+                            isNonStop: FALSE<br>
+                            baseFare: 272<br>
+                            <span class="value">totalFare: 379.58</span><br>
+                            <span class="value">seatsRemaining: 0</span><br>
+                            totalTravelDistance: [empty]<br>
+                            segmentsDepartureTimeEpochSeconds: 1650238920||1650251100<br>
+                            segmentsDepartureTimeRaw: 2022-04-17T19:42:00.000-04:00||2022-04-17T23:05:00.000-04:00<br>
+                            segmentsArrivalTimeEpochSeconds: 1650245940||1650268980<br>
+                            segmentsArrivalTimeRaw: 2022-04-17T21:39:00.000-04:00||2022-04-18T01:03:00.000-07:00<br>
+                            segmentsArrivalAirportCode: DTW||LAX<br>
+                            segmentsDepartureAirportCode: ATL||DTW<br>
+                            segmentsAirlineName: Spirit Airlines||Spirit Airlines<br>
+                            segmentsAirlineCode: NK||NK<br>
+                            segmentsEquipmentDescription: AIRBUS INDUSTRIE A321 SHARKLETS||Airbus A319<br>
+                            segmentsDurationInSeconds: 7020||17880<br>
+                            segmentsDistance: None||None<br>
+                            segmentsCabinCode: coach||coach<br>
+
+                        </div>
+                        <div class="record">
+                            <strong>Record 3:</strong><br>
+                            legId: ed9216ddb4e22f8d2fcf0e422314a5be<br>
+                            searchDate: 4/16/2022<br>
+                            flightDate: 4/20/2022<br>
+                            <span class="key">startingAirport: DTW</span><br>
+                            <span class="key">destinationAirport: ORD</span><br>
+                            fareBasisCode: WAA3AFEN<br>
+                            travelDuration: PT1H28M<br>
+                            elapsedDays: 0<br>
+                            isBasicEconomy: FALSE<br>
+                            isRefundable: FALSE<br>
+                            isNonStop: TRUE<br>
+                            baseFare: 145.12<br>
+                            <span class="value">totalFare: 170.6</span><br>
+                            <span class="value">seatsRemaining: 5</span><br>
+                            totalTravelDistance: 240<br>
+                            segmentsDepartureTimeEpochSeconds: 1650469080<br>
+                            segmentsDepartureTimeRaw: 2022-04-20T11:38:00.000-04:00<br>
+                            segmentsArrivalTimeEpochSeconds: 1650474360<br>
+                            segmentsArrivalTimeRaw: 2022-04-20T12:06:00.000-05:00<br>
+                            segmentsArrivalAirportCode: ORD<br>
+                            segmentsDepartureAirportCode: DTW<br>
+                            segmentsAirlineName: United<br>
+                            segmentsAirlineCode: UA<br>
+                            segmentsEquipmentDescription: [empty]<br>
+                            segmentsDurationInSeconds: 5280<br>
+                            segmentsDistance: 240<br>
+                            segmentsCabinCode: coach<br>
+
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="arrow">→</div>
+                
+                <!-- Map Stage -->
+                <div class="stage map-stage">
+                    <div class="stage-title">Map Stage (RouteMapper)</div>
+                    <div class="data-box">
+                        <div class="key-value">
+                            <span class="key">Key:</span> ATL-BOS<br>
+                            <span class="value">Value:</span> 9,248.6
+                        </div>
+                        <div class="key-value">
+                            <span class="key">Key:</span> ATL-LAX<br>
+                            <span class="value">Value:</span> 0,379.58
+                        </div>
+                        <div class="key-value">
+                            <span class="key">Key:</span> DTW-ORD<br>
+                            <span class="value">Value:</span> 5,170.6
+                        </div>
+                        
+                        <div class="logic-box">
+                            <strong>Processing Logic:</strong><br>
+                            • Extract startingAirport + destinationAirport as route key<br>
+                            • Get seatsRemaining and totalFare from CSV fields<br>
+                            • Skip invalid records (missing data, negative values)<br>
+                            • Output: (route, "seatsRemaining,totalFare")
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="arrow">→</div>
+                
+                <!-- Sort & Shuffle Stage -->
+                <div class="stage shuffle-stage">
+                    <div class="stage-title">Sort & Shuffle Stage</div>
+                    <div class="data-box">
+                        <div class="grouped-data">
+                            <strong><span class="key">ATL-BOS:</span></strong><br>
+                            [<span class="value">9,248.6</span>, ...]
+                        </div>
+                        <div class="grouped-data">
+                            <strong><span class="key">ATL-LAX:</span></strong><br>
+                            [<span class="value">0,379.58</span>, ...]
+                        </div>
+                        <div class="grouped-data">
+                            <strong><span class="key">DTW-ORD:</span></strong><br>
+                            [<span class="value">5,170.6</span>, ...]
+                        </div>
+                        
+                        <div class="logic-box">
+                            <strong>Process:</strong><br>
+                            • Group by route (all flights for same route)<br>
+                            • Sort route keys alphabetically<br>
+                            • Distribute grouped data to Reducers<br>
+                            • Ensure data locality and load balancing
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="arrow">→</div>
+                
+                <!-- Reduce Stage -->
+                <div class="stage reduce-stage">
+                    <div class="stage-title">Reduce Stage (DemandPriceReducer)</div>
+                    <div class="data-box">
+                        <div class="final-output">
+                            <strong><span class="key">ATL-BOS:</span></strong><br>
+                            <span class="value">TotalFlights=1,AvgPrice=248.60,AvgSeatsRemaining=9.00,EstimatedDemand=1.00,DemandPriceCorrelation=0.0000</span>
+                        </div>
+                        <div class="final-output">
+                            <strong><span class="key">ATL-LAX:</span></strong><br>
+                            <span class="value">TotalFlights=1,AvgPrice=379.58,AvgSeatsRemaining=0.00,EstimatedDemand=10.00,DemandPriceCorrelation=0.0000</span>
+                        </div>
+                        <div class="final-output">
+                            <strong><span class="key">DTW-ORD:</span></strong><br>
+                            <span class="value">TotalFlights=1,AvgPrice=170.60,AvgSeatsRemaining=5.00,EstimatedDemand=5.00,DemandPriceCorrelation=0.0000</span>
+                        </div>
+                        
+                        <div class="logic-box">
+                            <strong>Aggregation Calculations:</strong><br>
+                            • Count total flights per route<br>
+                            • Calculate average price and seats remaining<br>
+                            • EstimatedDemand = max(0, 10 - avgSeatsRemaining)<br>
+                            • Compute correlation between demand and price<br>
+                            • Generate comprehensive route analysis metrics
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="arrow">→</div>
+                
+                <!-- Output Stage -->
+                <div class="stage output-stage">
+                    <div class="stage-title">Output Stage</div>
+                    <div class="data-box">
+                        <div class="scrollable-text-box">
+                            <pre>ATL-EWR	TotalFlights=307997,AvgPrice=210.76,AvgSeatsRemaining=4.97,EstimatedDemand=5.03,DemandPriceCorrelation=-0.1518
+ATL-LAX	TotalFlights=709809,AvgPrice=369.20,AvgSeatsRemaining=5.18,EstimatedDemand=4.82,DemandPriceCorrelation=-0.2940
+ATL-ORD	TotalFlights=346153,AvgPrice=230.57,AvgSeatsRemaining=5.42,EstimatedDemand=4.58,DemandPriceCorrelation=-0.0422
+ATL-SFO	TotalFlights=421322,AvgPrice=455.89,AvgSeatsRemaining=6.49,EstimatedDemand=3.51,DemandPriceCorrelation=0.0850
+BOS-ATL	TotalFlights=512661,AvgPrice=277.95,AvgSeatsRemaining=6.62,EstimatedDemand=3.38,DemandPriceCorrelation=-0.2354
+BOS-DFW	TotalFlights=474857,AvgPrice=301.22,AvgSeatsRemaining=6.26,EstimatedDemand=3.74,DemandPriceCorrelation=0.0428
+BOS-JFK	TotalFlights=341232,AvgPrice=194.79,AvgSeatsRemaining=6.35,EstimatedDemand=3.65,DemandPriceCorrelation=0.1378
+BOS-OAK	TotalFlights=275357,AvgPrice=618.30,AvgSeatsRemaining=6.08,EstimatedDemand=3.92,DemandPriceCorrelation=-0.0460
+BOS-PHL	TotalFlights=196103,AvgPrice=189.43,AvgSeatsRemaining=6.36,EstimatedDemand=3.64,DemandPriceCorrelation=0.1733
+CLT-EWR	TotalFlights=331102,AvgPrice=241.77,AvgSeatsRemaining=5.88,EstimatedDemand=4.12,DemandPriceCorrelation=0.0305
+CLT-LAX	TotalFlights=572097,AvgPrice=429.02,AvgSeatsRemaining=5.78,EstimatedDemand=4.22,DemandPriceCorrelation=0.0226
+CLT-ORD	TotalFlights=448594,AvgPrice=281.10,AvgSeatsRemaining=5.99,EstimatedDemand=4.01,DemandPriceCorrelation=0.1306
+CLT-SFO	TotalFlights=445345,AvgPrice=507.28,AvgSeatsRemaining=6.04,EstimatedDemand=3.96,DemandPriceCorrelation=0.0668
+DEN-EWR	TotalFlights=308490,AvgPrice=339.61,AvgSeatsRemaining=5.95,EstimatedDemand=4.05,DemandPriceCorrelation=-0.0676
+DEN-LAX	TotalFlights=427474,AvgPrice=233.06,AvgSeatsRemaining=5.91,EstimatedDemand=4.09,DemandPriceCorrelation=0.1273
+DEN-ORD	TotalFlights=251616,AvgPrice=312.30,AvgSeatsRemaining=6.44,EstimatedDemand=3.56,DemandPriceCorrelation=0.0961
+DEN-SFO	TotalFlights=318026,AvgPrice=282.89,AvgSeatsRemaining=6.29,EstimatedDemand=3.71,DemandPriceCorrelation=0.2191
+DFW-ATL	TotalFlights=304781,AvgPrice=234.17,AvgSeatsRemaining=5.78,EstimatedDemand=4.22,DemandPriceCorrelation=-0.0403
+DFW-BOS	TotalFlights=444305,AvgPrice=302.73,AvgSeatsRemaining=6.31,EstimatedDemand=3.69,DemandPriceCorrelation=0.0850
+DFW-JFK	TotalFlights=247650,AvgPrice=329.28,AvgSeatsRemaining=6.62,EstimatedDemand=3.38,DemandPriceCorrelation=0.0619
+DFW-OAK	TotalFlights=414048,AvgPrice=443.38,AvgSeatsRemaining=4.84,EstimatedDemand=5.16,DemandPriceCorrelation=-0.5321
+DFW-PHL	TotalFlights=410974,AvgPrice=323.11,AvgSeatsRemaining=5.51,EstimatedDemand=4.49,DemandPriceCorrelation=-0.2283
+DTW-ATL	TotalFlights=376135,AvgPrice=292.64,AvgSeatsRemaining=5.67,EstimatedDemand=4.33,DemandPriceCorrelation=-0.3245
+DTW-BOS	TotalFlights=350536,AvgPrice=234.91,AvgSeatsRemaining=5.47,EstimatedDemand=4.53,DemandPriceCorrelation=0.0011
+DTW-DFW	TotalFlights=297613,AvgPrice=314.02,AvgSeatsRemaining=5.33,EstimatedDemand=4.67,DemandPriceCorrelation=-0.1618
+DTW-JFK	TotalFlights=329486,AvgPrice=389.80,AvgSeatsRemaining=6.30,EstimatedDemand=3.70,DemandPriceCorrelation=0.0332
+DTW-OAK	TotalFlights=273931,AvgPrice=551.56,AvgSeatsRemaining=4.81,EstimatedDemand=5.19,DemandPriceCorrelation=-0.3637
+DTW-PHL	TotalFlights=214275,AvgPrice=305.04,AvgSeatsRemaining=5.40,EstimatedDemand=4.60,DemandPriceCorrelation=-0.1286
+EWR-LAX	TotalFlights=544467,AvgPrice=355.48,AvgSeatsRemaining=5.93,EstimatedDemand=4.07,DemandPriceCorrelation=-0.0564
+EWR-ORD	TotalFlights=397096,AvgPrice=221.61,AvgSeatsRemaining=6.12,EstimatedDemand=3.88,DemandPriceCorrelation=0.2486
+EWR-SFO	TotalFlights=366756,AvgPrice=407.33,AvgSeatsRemaining=6.63,EstimatedDemand=3.37,DemandPriceCorrelation=0.1548
+IAD-CLT	TotalFlights=143791,AvgPrice=225.83,AvgSeatsRemaining=6.01,EstimatedDemand=3.99,DemandPriceCorrelation=0.2637
+IAD-DEN	TotalFlights=228064,AvgPrice=373.51,AvgSeatsRemaining=6.22,EstimatedDemand=3.78,DemandPriceCorrelation=0.1006
+IAD-DTW	TotalFlights=108162,AvgPrice=223.95,AvgSeatsRemaining=5.91,EstimatedDemand=4.09,DemandPriceCorrelation=0.2301
+IAD-LGA	TotalFlights=497571,AvgPrice=390.82,AvgSeatsRemaining=6.53,EstimatedDemand=3.47,DemandPriceCorrelation=0.1982
+IAD-MIA	TotalFlights=171352,AvgPrice=301.71,AvgSeatsRemaining=6.34,EstimatedDemand=3.66,DemandPriceCorrelation=0.2140
+JFK-ATL	TotalFlights=280980,AvgPrice=286.27,AvgSeatsRemaining=6.70,EstimatedDemand=3.30,DemandPriceCorrelation=-0.0071
+JFK-BOS	TotalFlights=344212,AvgPrice=201.79,AvgSeatsRemaining=6.27,EstimatedDemand=3.73,DemandPriceCorrelation=0.0753
+JFK-DFW	TotalFlights=380139,AvgPrice=416.04,AvgSeatsRemaining=6.64,EstimatedDemand=3.36,DemandPriceCorrelation=0.0418
+JFK-OAK	TotalFlights=134545,AvgPrice=561.58,AvgSeatsRemaining=6.11,EstimatedDemand=3.89,DemandPriceCorrelation=0.0611
+JFK-PHL	TotalFlights=264629,AvgPrice=408.70,AvgSeatsRemaining=6.68,EstimatedDemand=3.32,DemandPriceCorrelation=0.1378
+LAX-EWR	TotalFlights=587270,AvgPrice=388.76,AvgSeatsRemaining=5.85,EstimatedDemand=4.15,DemandPriceCorrelation=-0.0998
+LAX-ORD	TotalFlights=620576,AvgPrice=341.50,AvgSeatsRemaining=5.29,EstimatedDemand=4.71,DemandPriceCorrelation=-0.2123
+LAX-SFO	TotalFlights=353591,AvgPrice=181.64,AvgSeatsRemaining=6.40,EstimatedDemand=3.60,DemandPriceCorrelation=0.3822
+LGA-ATL	TotalFlights=435876,AvgPrice=197.06,AvgSeatsRemaining=6.06,EstimatedDemand=3.94,DemandPriceCorrelation=-0.0171
+LGA-BOS	TotalFlights=442019,AvgPrice=140.15,AvgSeatsRemaining=6.69,EstimatedDemand=3.31,DemandPriceCorrelation=0.2830
+LGA-DFW	TotalFlights=492269,AvgPrice=217.84,AvgSeatsRemaining=6.20,EstimatedDemand=3.80,DemandPriceCorrelation=0.1203
+LGA-OAK	TotalFlights=402236,AvgPrice=657.53,AvgSeatsRemaining=6.13,EstimatedDemand=3.87,DemandPriceCorrelation=0.0705
+LGA-PHL	TotalFlights=476407,AvgPrice=330.56,AvgSeatsRemaining=6.87,EstimatedDemand=3.13,DemandPriceCorrelation=0.0606
+MIA-ATL	TotalFlights=266756,AvgPrice=252.77,AvgSeatsRemaining=5.91,EstimatedDemand=4.09,DemandPriceCorrelation=-0.0412
+MIA-BOS	TotalFlights=426167,AvgPrice=220.82,AvgSeatsRemaining=6.05,EstimatedDemand=3.95,DemandPriceCorrelation=0.0332
+MIA-DFW	TotalFlights=483435,AvgPrice=278.63,AvgSeatsRemaining=5.78,EstimatedDemand=4.22,DemandPriceCorrelation=-0.1698
+MIA-JFK	TotalFlights=277396,AvgPrice=222.27,AvgSeatsRemaining=6.68,EstimatedDemand=3.32,DemandPriceCorrelation=0.1699
+MIA-OAK	TotalFlights=159168,AvgPrice=636.74,AvgSeatsRemaining=5.42,EstimatedDemand=4.58,DemandPriceCorrelation=-0.2552
+MIA-PHL	TotalFlights=319243,AvgPrice=273.81,AvgSeatsRemaining=5.65,EstimatedDemand=4.35,DemandPriceCorrelation=-0.2733
+OAK-EWR	TotalFlights=183580,AvgPrice=546.67,AvgSeatsRemaining=5.46,EstimatedDemand=4.54,DemandPriceCorrelation=-0.3710
+OAK-LAX	TotalFlights=264486,AvgPrice=325.43,AvgSeatsRemaining=4.44,EstimatedDemand=5.56,DemandPriceCorrelation=-0.3863
+OAK-ORD	TotalFlights=275237,AvgPrice=489.77,AvgSeatsRemaining=4.53,EstimatedDemand=5.47,DemandPriceCorrelation=-0.4926
+OAK-SFO	TotalFlights=253665,AvgPrice=438.47,AvgSeatsRemaining=6.17,EstimatedDemand=3.83,DemandPriceCorrelation=-0.0871
+ORD-ATL	TotalFlights=344735,AvgPrice=224.78,AvgSeatsRemaining=5.52,EstimatedDemand=4.48,DemandPriceCorrelation=-0.0176
+ORD-BOS	TotalFlights=442245,AvgPrice=205.87,AvgSeatsRemaining=6.32,EstimatedDemand=3.68,DemandPriceCorrelation=0.1587
+ORD-DFW	TotalFlights=440524,AvgPrice=274.73,AvgSeatsRemaining=5.01,EstimatedDemand=4.99,DemandPriceCorrelation=-0.0247
+ORD-JFK	TotalFlights=515195,AvgPrice=414.18,AvgSeatsRemaining=6.94,EstimatedDemand=3.06,DemandPriceCorrelation=-0.0905
+ORD-OAK	TotalFlights=223613,AvgPrice=465.61,AvgSeatsRemaining=4.63,EstimatedDemand=5.37,DemandPriceCorrelation=-0.4543
+ORD-PHL	TotalFlights=253637,AvgPrice=251.77,AvgSeatsRemaining=5.67,EstimatedDemand=4.33,DemandPriceCorrelation=0.0598
+PHL-EWR	TotalFlights=305560,AvgPrice=393.44,AvgSeatsRemaining=6.67,EstimatedDemand=3.33,DemandPriceCorrelation=0.1986
+PHL-LAX	TotalFlights=531681,AvgPrice=406.76,AvgSeatsRemaining=5.59,EstimatedDemand=4.41,DemandPriceCorrelation=-0.1564
+PHL-ORD	TotalFlights=252310,AvgPrice=246.89,AvgSeatsRemaining=5.77,EstimatedDemand=4.23,DemandPriceCorrelation=0.1470
+PHL-SFO	TotalFlights=349193,AvgPrice=494.36,AvgSeatsRemaining=5.99,EstimatedDemand=4.01,DemandPriceCorrelation=0.0316
+SFO-EWR	TotalFlights=400532,AvgPrice=442.42,AvgSeatsRemaining=6.58,EstimatedDemand=3.42,DemandPriceCorrelation=0.1119
+SFO-LAX	TotalFlights=358832,AvgPrice=181.43,AvgSeatsRemaining=6.41,EstimatedDemand=3.59,DemandPriceCorrelation=0.3891
+SFO-ORD	TotalFlights=370428,AvgPrice=419.88,AvgSeatsRemaining=6.49,EstimatedDemand=3.51,DemandPriceCorrelation=0.1504
+
+
+                            </pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Job 2: Distance Range and Price Efficiency Analysis -->
+        <div class="job-container">
+            <div class="job-title">Job 2: Distance Range and Price Efficiency Analysis (DistanceMapper + PricePerMileReducer)</div>
+            <div class="flow-diagram">
+                <!-- Input Stage -->
+                <div class="stage input-stage">
+                    <div class="stage-title">Input Stage</div>
+                    <div class="data-box">
+                        <div class="record">
+                            <strong>Same Input Records:</strong><br>
+                            • Record 1: ATL-BOS, totalFare: 248.6, <span class="key">distance: 947</span><br>
+                            • Record 3: DTW-ORD, totalFare: 170.6, <span class="key">distance: 240</span><br>
+                            • Record 2: ATL-LAX, totalFare: 379.58, <span class="key">distance: [empty] - SKIPPED</span>
+                        </div>
+                        
+                        <div class="logic-box">
+                            <strong>Input Processing:</strong><br>
+                            • Use same CSV input as Job 1<br>
+                            • Focus on totalTravelDistance and totalFare fields<br>
+                            • Skip records with missing or invalid distance data
+                        </div>
+                    </div>
+                    <div class="data-box">
+                        <div class="record">
+                            <strong>Record 1:</strong><br>
+                            legId: 9ca0e81111c683bec1012473feefd28f<br>
+                            searchDate: 4/16/2022<br>
+                            flightDate: 4/17/2022<br>
+                            <span class="key">startingAirport: ATL</span><br>
+                            <span class="key">destinationAirport: BOS</span><br>
+                            fareBasisCode: LA0NX0MC<br>
+                            travelDuration: PT2H29M<br>
+                            elapsedDays: 0<br>
+                            isBasicEconomy: FALSE<br>
+                            isRefundable: FALSE<br>
+                            isNonStop: TRUE<br>
+                            baseFare: 217.67<br>
+                            <span class="value">totalFare: 248.6</span><br>
+                            seatsRemaining: 9<br>
+                            <span class="value">totalTravelDistance: 947</span><br>
+                            segmentsDepartureTimeEpochSeconds: 1650214620<br>
+                            segmentsDepartureTimeRaw: 2022-04-17T12:57:00.000-04:00<br>
+                            segmentsArrivalTimeEpochSeconds: 1650223560<br>
+                            segmentsArrivalTimeRaw: 2022-04-17T15:26:00.000-04:00<br>
+                            segmentsArrivalAirportCode: BOS<br>
+                            segmentsDepartureAirportCode: ATL<br>
+                            segmentsAirlineName: Delta<br>
+                            segmentsAirlineCode: DL<br>
+                            segmentsEquipmentDescription: Airbus A321<br>
+                            segmentsDurationInSeconds: 8940<br>
+                            segmentsDistance: 947<br>
+                            segmentsCabinCode: coach<br>
+
+                        </div>
+                        <div class="record">
+                            <strong>Record 2:</strong><br>
+                            legId: 6081f9cedd3a6c892100ccc6548133eb<br>
+                            searchDate: 4/16/2022<br>
+                            flightDate: 4/17/2022<br>
+                            <span class="key">startingAirport: ATL</span><br>
+                            <span class="key">destinationAirport: LAX</span><br>
+                            fareBasisCode: KNR<br>
+                            travelDuration: PT8H21M<br>
+                            elapsedDays: 1<br>
+                            isBasicEconomy: FALSE<br>
+                            isRefundable: FALSE<br>
+                            isNonStop: FALSE<br>
+                            baseFare: 272<br>
+                            <span class="value">totalFare: 379.58</span><br>
+                            seatsRemaining: 0<br>
+                            <span class="value">totalTravelDistance: [empty]</span><br>
+                            segmentsDepartureTimeEpochSeconds: 1650238920||1650251100<br>
+                            segmentsDepartureTimeRaw: 2022-04-17T19:42:00.000-04:00||2022-04-17T23:05:00.000-04:00<br>
+                            segmentsArrivalTimeEpochSeconds: 1650245940||1650268980<br>
+                            segmentsArrivalTimeRaw: 2022-04-17T21:39:00.000-04:00||2022-04-18T01:03:00.000-07:00<br>
+                            segmentsArrivalAirportCode: DTW||LAX<br>
+                            segmentsDepartureAirportCode: ATL||DTW<br>
+                            segmentsAirlineName: Spirit Airlines||Spirit Airlines<br>
+                            segmentsAirlineCode: NK||NK<br>
+                            segmentsEquipmentDescription: AIRBUS INDUSTRIE A321 SHARKLETS||Airbus A319<br>
+                            segmentsDurationInSeconds: 7020||17880<br>
+                            segmentsDistance: None||None<br>
+                            segmentsCabinCode: coach||coach<br>
+
+                        </div>
+                        <div class="record">
+                            <strong>Record 3:</strong><br>
+                            legId: ed9216ddb4e22f8d2fcf0e422314a5be<br>
+                            searchDate: 4/16/2022<br>
+                            flightDate: 4/20/2022<br>
+                            <span class="key">startingAirport: DTW</span><br>
+                            <span class="key">destinationAirport: ORD</span><br>
+                            fareBasisCode: WAA3AFEN<br>
+                            travelDuration: PT1H28M<br>
+                            elapsedDays: 0<br>
+                            isBasicEconomy: FALSE<br>
+                            isRefundable: FALSE<br>
+                            isNonStop: TRUE<br>
+                            baseFare: 145.12<br>
+                            <span class="value">totalFare: 170.6</span><br>
+                            seatsRemaining: 5<br>
+                            <span class="value">totalTravelDistance: 240</span><br>
+                            segmentsDepartureTimeEpochSeconds: 1650469080<br>
+                            segmentsDepartureTimeRaw: 2022-04-20T11:38:00.000-04:00<br>
+                            segmentsArrivalTimeEpochSeconds: 1650474360<br>
+                            segmentsArrivalTimeRaw: 2022-04-20T12:06:00.000-05:00<br>
+                            segmentsArrivalAirportCode: ORD<br>
+                            segmentsDepartureAirportCode: DTW<br>
+                            segmentsAirlineName: United<br>
+                            segmentsAirlineCode: UA<br>
+                            segmentsEquipmentDescription: [empty]<br>
+                            segmentsDurationInSeconds: 5280<br>
+                            segmentsDistance: 240<br>
+                            segmentsCabinCode: coach<br>
+
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="arrow">→</div>
+                
+                <div class="stage map-stage">
+                    <div class="stage-title">Map Stage (DistanceMapper)</div>
+                    <div class="data-box">
+                        <div class="key-value">
+                            <span class="key">Key:</span> 500-1000<br>
+                            <span class="value">Value:</span> 947,248.6
+                        </div>
+                        <div class="key-value">
+                            <span class="key">Key:</span> 0-500<br>
+                            <span class="value">Value:</span> 240,170.6
+                        </div>
+                        
+                        <div class="logic-box">
+                            <strong>Processing Logic:</strong><br>
+                            • Extract totalTravelDistance and totalFare<br>
+                            • Categorize distance into ranges: 0-500, 500-1000, 1000-1500, etc.<br>
+                            • Skip records with missing distance or invalid fare<br>
+                            • Output: (distanceRange, "distance,totalFare")
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="arrow">→</div>
+                
+                <div class="stage shuffle-stage">
+                    <div class="stage-title">Sort & Shuffle Stage</div>
+                    <div class="data-box">
+                        <div class="grouped-data">
+                            <strong><span class="key">0-500:</span></strong><br>
+                            [<span class="value">240,170.6</span>, ...]
+                        </div>
+                        <div class="grouped-data">
+                            <strong><span class="key">500-1000:</span></strong><br>
+                            [<span class="value">947,248.6</span>, ...]
+                        </div>
+                        <div class="grouped-data">
+                            <strong><span class="key">1000-1500:</span></strong><br>
+                            [...]
+                        </div>
+                        
+                        <div class="logic-box">
+                            <strong>Process:</strong><br>
+                            • Group by distance range<br>
+                            • Sort distance ranges in ascending order<br>
+                            • Distribute grouped data to Reducers<br>
+                            • Enable parallel processing of different ranges
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="arrow">→</div>
+                
+                <div class="stage reduce-stage">
+                    <div class="stage-title">Reduce Stage (PricePerMileReducer)</div>
+                    <div class="data-box">
+                        <div class="final-output">
+                            <strong><span class="key">0-500:</span></strong><br>
+                            <span class="value">FlightCount=1,AvgDistance=240.00,AvgPrice=170.60,AvgPricePerMile=0.7108,<br>MinPricePerMile=0.7108,MaxPricePerMile=0.7108,StdDevPricePerMile=0.0000</span>
+                        </div>
+                        <div class="final-output">
+                            <strong><span class="key">500-1000:</span></strong><br>
+                            <span class="value">FlightCount=1,AvgDistance=947.00,AvgPrice=248.60,AvgPricePerMile=0.2625,<br>MinPricePerMile=0.2625,MaxPricePerMile=0.2625,StdDevPricePerMile=0.0000</span>
+                        </div>
+                        <div class="final-output">
+                            <strong><span class="key">1000-1500:</span></strong><br>
+                            <span class="value">...</span>
+                        </div>
+                        
+                        <div class="logic-box">
+                            <strong>Aggregation Calculations:</strong><br>
+                            • Count flights in each distance range<br>
+                            • Calculate average distance and price<br>
+                            • Compute price per mile statistics (avg, min, max)<br>
+                            • Calculate standard deviation for pricing variance<br>
+                            • Analyze price efficiency across distance ranges
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="arrow">→</div>
+                
+                <div class="stage output-stage">
+                    <div class="stage-title">Output Stage</div>
+                    <div class="data-box">
+                        <div class="scrollable-text-box">
+                            <pre>0-500	FlightCount=5152357,AvgDistance=311.39,AvgPrice=193.29,AvgPricePerMile=0.6207,MinPricePerMile=0.0464,MaxPricePerMile=13.1712,StdDevPricePerMile=0.4509
+1000-1500	FlightCount=15317638,AvgDistance=1262.02,AvgPrice=302.12,AvgPricePerMile=0.2394,MinPricePerMile=0.0262,MaxPricePerMile=3.3164,StdDevPricePerMile=0.1269
+1500-2000	FlightCount=11238965,AvgDistance=1740.10,AvgPrice=357.03,AvgPricePerMile=0.2052,MinPricePerMile=0.0210,MaxPricePerMile=2.3248,StdDevPricePerMile=0.0950
+2000-2500	FlightCount=9626770,AvgDistance=2295.71,AvgPrice=428.38,AvgPricePerMile=0.1866,MinPricePerMile=0.0227,MaxPricePerMile=2.8210,StdDevPricePerMile=0.0823
+2500-3000	FlightCount=11955800,AvgDistance=2704.32,AvgPrice=469.65,AvgPricePerMile=0.1737,MinPricePerMile=0.0170,MaxPricePerMile=3.1698,StdDevPricePerMile=0.0802
+3000+	FlightCount=3959026,AvgDistance=3301.04,AvgPrice=556.19,AvgPricePerMile=0.1685,MinPricePerMile=0.0246,MaxPricePerMile=1.3054,StdDevPricePerMile=0.0774
+500-1000	FlightCount=18793665,AvgDistance=767.80,AvgPrice=264.58,AvgPricePerMile=0.3446,MinPricePerMile=0.0315,MaxPricePerMile=4.8654,StdDevPricePerMile=0.1845
+
+
+                            </pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Job 3: Route Insight Analysis and Business Intelligence -->
+        <div class="job-container">
+            <div class="job-title">Job 3: Route Insight Analysis and Business Intelligence (RouteInsightAnalysisMapper + RouteInsightAnalysisReducer)</div>
+            <div class="flow-diagram">
+                <!-- Input Stage -->
+                <div class="stage input-stage">
+                    <div class="stage-title">Input Stage</div>
+                    <div class="data-box">
+                        <div class="record">
+                            <strong>Input File 1: RouteAnalysisOutput/part-r-00000</strong><br>
+                            <span class="key">ATL-BOS</span>	<span class="value">TotalFlights=1,AvgPrice=248.60,AvgSeatsRemaining=9.00,EstimatedDemand=1.00,DemandPriceCorrelation=0.0000</span><br><br>
+                            <span class="key">ATL-LAX</span>	<span class="value">TotalFlights=1,AvgPrice=379.58,AvgSeatsRemaining=0.00,EstimatedDemand=10.00,DemandPriceCorrelation=0.0000</span><br><br>
+                            <span class="key">DTW-ORD</span>	<span class="value">TotalFlights=1,AvgPrice=170.60,AvgSeatsRemaining=5.00,EstimatedDemand=5.00,DemandPriceCorrelation=0.0000</span>
+                        </div>
+                        <div class="record">
+                            <strong>Input File 2: DistanceAnalysisOutput/part-r-00000</strong><br><br>
+                            <span class="key">0-500</span>	    <span class="value"><br>FlightCount=1,AvgDistance=240.00,AvgPrice=170.60,AvgPricePerMile=0.7108,<br>MinPricePerMile=0.7108,MaxPricePerMile=0.7108,StdDevPricePerMile=0.0000</span><br><br>
+                            <span class="key">500-1000</span>	 <span class="value"><br>FlightCount=1,AvgDistance=947.00,AvgPrice=248.60,AvgPricePerMile=0.2625,<br>MinPricePerMile=0.2625,MaxPricePerMile=0.2625,StdDevPricePerMile=0.0000</span><br><br>
+                            <span class="key">1000-1500</span>	 <span class="value"><br>&nbsp;...</span>
+                        </div>
+
+                        <div class="logic-box">
+                            <strong>Input Processing:</strong><br>
+                            • Read outputs from Job 1 (Route Analysis) and Job 2 (Distance Analysis)<br>
+                            • Process two different input formats in same mapper<br>
+                            • Use FileSplit to determine data source and processing logic
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <!-- Map Stage -->
+                <div class="stage map-stage">
+                    <div class="stage-title">Map Stage (RouteInsightAnalysisMapper)</div>
+                    <div class="data-box">
+                        <div class="key-value">
+                            <span class="key">Key:</span>ROUTE_ANALYSIS<br>
+                            <span class="value">Value:</span><br>ROUTE:ATL-OS|TotalFlights=1,AvgPrice=248.60,AvgSeatsRemaining=9.0,EstimatedDemand=1.0,DemandPriceCorrelation=0.0
+                        </div>
+                        <div class="key-value">
+                            <span class="key">Key:</span> ROUTE_ANALYSIS<br>
+                            <span class="value">Value:</span><br> ROUTE:ATL-LAX|TotalFlights=1,AvgPrice=379.58,AvgSeatsRemaining=0,EstimatedDemand=10,DemandPriceCorrelation=0.0
+                        </div>
+                        <div class="key-value">
+                            <span class="key">Key:</span> ROUTE_ANALYSIS<br>
+                            <span class="value">Value:</span><br> ROUTE:DTW-ORD|TotalFlights=1,AvgPrice=170.6,AvgSeatsRemaining=5.0,EstimatedDemand=5.0,DemandPriceCorrelation=0.0
+                        </div>
+                        <div class="key-value">
+                            <span class="key">Key:</span> DISTANCE_ANALYSIS<br>
+                            <span class="value">Value:</span> <br>RANGE:0-500|FlightCount=1,AvgDistance=240.00,AvgPrice=170.60,AvgPricePerMile=0.7108,<br>MinPricePerMile=0.7108,MaxPricePerMile=0.7108,StdDevPricePerMile=0.0000
+                        </div>
+                        <div class="key-value">
+                            <span class="key">Key:</span> DISTANCE_ANALYSIS<br>
+                            <span class="value">Value:</span> <br>RANGE:500-1000|FlightCount=1,AvgDistance=947.00,AvgPrice=248.60,AvgPricePerMile=0.2625,<br>MinPricePerMile=0.2625,MaxPricePerMile=0.2625,StdDevPricePerMile=0.0000
+                        </div>
+
+                        <div class="logic-box">
+                            <strong>Processing Logic:</strong><br>
+                            • Detect input source using FileSplit filename<br>
+                            • Route data → Key: "ROUTE_ANALYSIS", Value: "ROUTE:route|metrics"<br>
+                            • Distance data → Key: "DISTANCE_ANALYSIS", Value: "RANGE:range|metrics"<br>
+                            • Separate processing logic for each data type
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <!-- Sort & Shuffle Stage -->
+                <div class="stage shuffle-stage">
+                    <div class="stage-title">Sort & Shuffle Stage</div>
+                    <div class="data-box">
+                        <div class="grouped-data">
+                            <strong><span class="key">ROUTE_ANALYSIS:</span></strong><br>
+                            [<span class="value">ROUTE:ATL-BOS|TotalFlights=1,AvgPrice=248.6,AvgSeatsRemaining=9,EstimatedDemand=1,DemandPriceCorrelation=0,
+                             &nbsp;ROUTE:ATL-LAX|TotalFlights=1,AvgPrice=379.58,AvgSeatsRemaining=0,EstimatedDemand=10,DemandPriceCorrelation=0,
+                            &nbsp;ROUTE:DTW-ORD|TotalFlights=1,AvgPrice=170.6,AvgSeatsRemaining=5,EstimatedDemand=5,DemandPriceCorrelation=0, &nbsp;...</span>]
+                        </div>
+                        <div class="grouped-data">
+                            <strong><span class="key">DISTANCE_ANALYSIS:</span></strong><br>
+                            [<span class="value">RANGE:0-500|FlightCount=1,AvgDistance=240.00,AvgPrice=170.60,AvgPricePerMile=0.7108,<br>&nbsp;MinPricePerMile=0.7108,MaxPricePerMile=0.7108,StdDevPricePerMile=0.0000,<br>
+                            <br>&nbsp;RANGE:500-1000|FlightCount=1,AvgDistance=947.00,AvgPrice=248.60,AvgPricePerMile=0.2625,<br>&nbsp;MinPricePerMile=0.2625,MaxPricePerMile=0.2625,StdDevPricePerMile=0.0000, ..</span>]
+                        </div>
+
+                        <div class="logic-box">
+                            <strong>Process:</strong><br>
+                            • Group by analysis type (ROUTE_ANALYSIS, DISTANCE_ANALYSIS)<br>
+                            • All route data goes to one reducer instance<br>
+                            • All distance data goes to one reducer instance<br>
+                            • Enable comprehensive cross-analysis processing
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <!-- Reduce Stage -->
+                <div class="stage reduce-stage">
+                    <div class="stage-title">Reduce Stage (RouteInsightAnalysisReducer)</div>
+                    <div class="data-box">
+                        <div class="final-output" style="max-height: 300px; overflow-y: auto;">
+                            <strong><span class="key">EXECUTIVE_SUMMARY:</span></strong><br>
+                            ╔═══════════════════════════════════════════╗<br>
+                            ║        AIRLINE ROUTE ANALYSIS REPORT     ║<br>
+                            ║ Total Routes: <span class="key_count">150</span>  Distance Ranges: 8    ║<br>
+                            ║ Avg Demand: <span class="value">5.24/10</span> (MODERATE)          ║<br>
+                            ║ Market Efficiency: MODERATELY EFFICIENT  ║<br>
+                            ╚═══════════════════════════════════════════╝<br><br>
+
+                            <strong><span class="key">HIGH_DEMAND_ROUTES:</span></strong><br>
+                            ┌────────────────────────────────────────┐<br>
+                            │       TOP 10 HIGH-DEMAND ROUTES       │<br>
+                            │ <span class="key">ATL-LAX</span>  │  <span class="value">8.70</span>  │ <span class="value">$382.15</span> │ Strong │<br>
+                            │ <span class="key">DTW-ORD</span>  │  <span class="value">5.33</span>  │ <span class="value">$172.93</span> │ Mod    │<br>
+                            │ <span class="key">ATL-BOS</span>  │  <span class="value">2.80</span>  │ <span class="value">$251.40</span> │ Strong │<br>
+                            └────────────────────────────────────────┘<br><br>
+
+                            <strong><span class="key">STRATEGIC_RECOMMENDATIONS:</span></strong><br>
+                            🚀 Focus marketing on <span class="key">ATL-LAX</span> (High Revenue)<br>
+                            ⚠️ Review <span class="key">DTW-ORD</span> capacity (Low demand)<br>
+                            💡 Implement dynamic pricing strategies
+                        </div>
+
+                        <div class="logic-box">
+                            <strong>Complex Analysis Operations:</strong><br>
+                            • Parse and store route & distance analysis data<br>
+                            • Generate executive summary with KPIs<br>
+                            • Identify high-demand and premium routes<br>
+                            • Calculate distance-based pricing efficiency<br>
+                            • Produce strategic business recommendations<br>
+                            • Create performance dashboard with visualizations
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <!-- Output Stage -->
+                <div class="stage output-stage">
+                    <div class="stage-title">Output Stage</div>
+                    <div class="data-box">
+                        <div class="scrollable-text-box">
+                            <pre>EXECUTIVE_SUMMARY	╔══════════════════════════════════════════════════════════════════════════════╗
+║                           AIRLINE ROUTE ANALYSIS REPORT                      ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ DATASET OVERVIEW:                                                            ║
+║   • Total Routes Analyzed: 235        • Distance Ranges: 7                ║
+║   • Total Flight Operations: 82,138,753                         ║
+║                                                                              ║
+║ KEY MARKET INDICATORS:                                                       ║
+║   • Average Market Demand: 4.02/10.00 (MODERATE)                      ║
+║   • Average Ticket Price: $340.24                                      ║
+║   • Market Efficiency: NEEDS OPTIMIZATION                       ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+HIGH_DEMAND_ROUTES	┌─────────────────────────────────────────────────────────────────────────────┐
+│                        TOP 10 HIGH-DEMAND ROUTES                           │
+├──────────────┬─────────┬───────────┬─────────────┬──────────────────────────┤
+│    Route     │ Demand  │ Avg Price │   Flights   │    Price Correlation     │
+├──────────────┼─────────┼───────────┼─────────────┼──────────────────────────┤
+│ LAX-OAK      │   6.09  │  $ 314.36  │   223,113 │ -0.4141 (Mod Neg)       │
+│ EWR-DTW      │   5.93  │  $ 240.17  │   255,364 │ 0.0733 (Weak)          │
+│ OAK-LAX      │   5.56  │  $ 325.43  │   264,486 │ -0.3863 (Mod Neg)       │
+│ OAK-ORD      │   5.47  │  $ 489.77  │   275,237 │ -0.4926 (Mod Neg)       │
+│ OAK-DFW      │   5.44  │  $ 419.43  │   418,387 │ -0.5834 (Strong Neg)    │
+│ DTW-EWR      │   5.37  │  $ 230.10  │   248,936 │ 0.1239 (Weak)          │
+│ ORD-OAK      │   5.37  │  $ 465.61  │   223,613 │ -0.4543 (Mod Neg)       │
+│ DTW-OAK      │   5.19  │  $ 551.56  │   273,931 │ -0.3637 (Mod Neg)       │
+│ DFW-OAK      │   5.16  │  $ 443.38  │   414,048 │ -0.5321 (Strong Neg)    │
+│ PHL-DTW      │   5.09  │  $ 300.37  │   238,780 │ -0.2094 (Weak)          │
+└──────────────┴─────────┴───────────┴─────────────┴──────────────────────────┘
+📊 INSIGHTS: Routes with demand >5.0 indicate high market saturation
+💡 Strong negative correlation suggests effective demand-based pricing
+PREMIUM_ROUTES
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         TOP 10 PREMIUM ROUTES                              │
+├──────────────┬───────────┬─────────┬─────────────┬──────────────────────────┤
+│    Route     │ Avg Price │ Demand  │   Flights   │    Capacity Status       │
+├──────────────┼───────────┼─────────┼─────────────┼──────────────────────────┤
+│ OAK-MIA      │ $  664.29 │   4.35  │   182,392 │   5.65 (High Avail)    │
+│ LGA-OAK      │ $  657.53 │   3.87  │   402,236 │   6.13 (High Avail)    │
+│ OAK-LGA      │ $  655.67 │   3.79  │   377,959 │   6.21 (High Avail)    │
+│ IAD-OAK      │ $  655.21 │   4.22  │   169,011 │   5.78 (High Avail)    │
+│ OAK-CLT      │ $  649.15 │   4.30  │   205,040 │   5.70 (High Avail)    │
+│ OAK-BOS      │ $  643.71 │   3.89  │   266,620 │   6.11 (High Avail)    │
+│ MIA-OAK      │ $  636.74 │   4.58  │   159,168 │   5.42 (High Avail)    │
+│ PHL-OAK      │ $  623.54 │   4.36  │   227,203 │   5.64 (High Avail)    │
+│ CLT-OAK      │ $  622.34 │   4.60  │   199,820 │   5.40 (High Avail)    │
+│ BOS-OAK      │ $  618.30 │   3.92  │   275,357 │   6.08 (High Avail)    │
+└──────────────┴───────────┴─────────┴─────────────┴──────────────────────────┘
+💰 INSIGHTS: Premium routes (>$600) may indicate business/first-class heavy routes
+⚠️  High seats remaining suggests potential overcapacity or pricing issues
+DISTANCE_EFFICIENCY	┌───────────────────────────────────────────────────────────────────────────────┐
+│                      DISTANCE-BASED PRICING EFFICIENCY                       │
+├────────────────┬─────────────┬───────────┬─────────────┬───────────────────┤
+│ Distance Range │   Flights   │ Avg Price │ Price/Mile  │ Efficiency Rating │
+├────────────────┼─────────────┼───────────┼─────────────┼───────────────────┤
+│ 3000+          │ 3,959,026 │ $  556.19 │   $ 0.1685   │ 🟡 GOOD         │
+│ 2500-3000      │ 11,955,800 │ $  469.65 │   $ 0.1737   │ 🟡 GOOD         │
+│ 2000-2500      │ 9,626,770 │ $  428.38 │   $ 0.1866   │ 🟡 GOOD         │
+│ 1500-2000      │ 11,238,965 │ $  357.03 │   $ 0.2052   │ 🟠 FAIR         │
+│ 1000-1500      │ 15,317,638 │ $  302.12 │   $ 0.2394   │ 🟠 FAIR         │
+│ 500-1000       │ 18,793,665 │ $  264.58 │   $ 0.3446   │ 🔴 POOR         │
+│ 0-500          │ 5,152,357 │ $  193.29 │   $ 0.6207   │ 🔴 POOR         │
+└────────────────┴─────────────┴───────────┴─────────────┴───────────────────┘
+📈 INSIGHTS: Lower price/mile indicates better operational efficiency
+🎯 Short-haul routes (<500mi) show highest cost per mile - consider optimization
+STRATEGIC_RECOMMENDATIONS	╔═══════════════════════════════════════════════════════════════════════════════╗
+║                        STRATEGIC BUSINESS RECOMMENDATIONS                    ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║ 🚀 REVENUE OPTIMIZATION (Priority: HIGH)                                     ║
+║    • Focus marketing on route: MIA-OAK                                       ║
+║    • Demand Score: 4.58/10 | Premium Pricing: $636.74                      ║
+║    • Revenue Potential: $101.35M annually                              ║
+║                                                                               ║
+║ ⚠️  CAPACITY OPTIMIZATION (Priority: MEDIUM)                                 ║
+║    • Review route capacity: DEN-JFK                                       ║
+║    • Low Demand: 2.86/10 | Empty Seats: 7.1 avg                        ║
+║    • Consider: Reduce frequency or smaller aircraft                           ║
+║                                                                               ║
+║ 💡 PRICING STRATEGY OPTIMIZATION (Priority: HIGH)                           ║
+║    • Target distance range: 0-500           miles                        ║
+║    • Current cost per mile: $0.6207 (Above optimal)                      ║
+║    • Potential savings: 15-25% through route optimization                    ║
+║                                                                               ║
+║ 📊 DYNAMIC PRICING IMPLEMENTATION                                            ║
+║    • Deploy AI-based pricing for high-correlation routes                     ║
+║    • Implement surge pricing during peak demand periods                      ║
+║                                                                               ║
+║ 🌍 MARKET EXPANSION OPPORTUNITIES                                            ║
+║    • Explore new routes in 2000-3000 mile range (Best efficiency)           ║
+║    • Consider partnerships for underserved markets                           ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+PERFORMANCE_DASHBOARD╔═══════════════════════════════════════════════════════════════════════════════╗
+║                         KEY PERFORMANCE INDICATORS                           ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  📈 DEMAND METRICS                    📊 FINANCIAL METRICS                   ║
+║     • Market Demand Score:            • Average Ticket Price:               ║
+║       4.02/10.00 (MODERATE)                 $340.24                          ║
+║                                                                               ║
+║  🎯 OPERATIONAL METRICS               📊 EFFICIENCY METRICS                  ║
+║     • Total Flight Operations:        • Demand-Price Correlation:           ║
+║       82,138,753 flights                   0.0026 (NEEDS OPTIMIZATION)    ║
+║                                                                               ║
+║  🏆 PERFORMANCE SUMMARY                                                       ║
+║     • Overall Market Performance: FAIR PERFORMANCE ⭐                ║
+║     • Optimization Potential: HIGH (70-85% improvement possible)                                ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+
+
+
+
+                            </pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-title">MapReduce Stage Legend:</div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #27ae60;"></span>
+                Input Stage: Raw CSV data reading and initial parsing
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #f39c12;"></span>
+                Map Stage: Data parsing and key-value pair generation
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #3498db;"></span>
+                Sort & Shuffle Stage: Data grouping, sorting, and distribution
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #e74c3c;"></span>
+                Reduce Stage: Aggregation and computation operations
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #9b59b6;"></span>
+                Output Stage: Final results written to distributed storage
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
